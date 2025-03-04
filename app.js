@@ -1,10 +1,10 @@
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
-const swaggerDocs = require('./helpers/swagger');
+const swaggerDocs = require('./swagger');
 swaggerDocs(app);
 
 
@@ -65,7 +65,7 @@ mongoose.connect(process.env.CONNECTION_STRING, {
 // })
 
 //Production
-var server = app.listen(process.env.PORT || PORT, function () {
+var server = app.listen(PORT, function () {
     var port = server.address().port;
-    console.log('Express is working on Port' + port)
+    console.log('Express is working on Port ' + port)
 }) 

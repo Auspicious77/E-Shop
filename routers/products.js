@@ -37,6 +37,64 @@ const uploadOptions = multer({ storage: storage });
 
 //select method to filter what should be on the categories when search
 // .select('name image -_id');
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       required:
+ *         - name
+ *         - description
+ *         - price
+ *         - category
+ *         - countInStock
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated ID of the product
+ *         name:
+ *           type: string
+ *           description: The product name
+ *         description:
+ *           type: string
+ *           description: Product description
+ *         price:
+ *           type: number
+ *           description: Product price
+ *         category:
+ *           type: string
+ *           description: Category ID
+ *         countInStock:
+ *           type: number
+ *           description: Available stock
+ *       example:
+ *         id: 60d21b96e7c8b5e9c8a73e27
+ *         name: Sample Product
+ *         description: A great product
+ *         price: 29.99
+ *         category: 60c72b2f9b1d4c001c8e4c3b
+ *         countInStock: 100
+ */
+
+/**
+ * @swagger
+ * /api/v1/products:
+ *   get:
+ *     summary: Get all products
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of all products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ */
+
 router.get(`/`, async (req, res) => {
     //query parameter: localhost:3000/api/v1/products?categories=293939,19930
     let filter = {};
