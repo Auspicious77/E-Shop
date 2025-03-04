@@ -1,4 +1,3 @@
-const { expressjwt } = require('express-jwt'); // Notice the destructuring
 
 
 //expressjwt is used to check if user has a token or not inoder to have access to the token
@@ -7,35 +6,27 @@ const { expressjwt } = require('express-jwt'); // Notice the destructuring
 //isRevoked is function used to specify if the user is admin or not
 
 
+const jwt = require('jsonwebtoken');
+const { expressjwt: expressJwt } = require("express-jwt");
+
 function authJwt() {
     const secret = process.env.secret;
-    const api = process.env.API_URL;
-    return expressjwt({
+    return expressJwt({
         secret,
         algorithms: ['HS256'],
-        isRevoked: isRevoked
     }).unless({
         path: [
-             //to allow user access the products but limited to posting products
-            //regular expression alows to specify everything that comes after products 
-            { url: /\/public\/uploads(.*)/, methods: ['GET', 'OPTIONS'] },
+            // Public routes that don't require authentication
             { url: /\/api\/v1\/products(.*)/, methods: ['GET', 'OPTIONS'] },
-            { url: /\/api\/v1\/categories(.*)/, methods: ['GET', 'OPTIONS'] },
-            { url: /\/api\/v1\/orders(.*)/, methods: ['GET', 'OPTIONS', 'POST'] },
-            `${api}/v1/users/login`,
-            `${api}/v1/users/register`,
+            { url: /\/api\/v1\/users\/login/, methods: ['POST'] },
+            { url: /\/api\/v1\/users\/register/, methods: ['POST'] }
         ]
     });
 }
 
-async function isRevoked(req, token) {
-    if (!token.payload.isAdmin) {
-        return true; // Reject access
-    }
-    return false; // Allow access
-}
-
 module.exports = authJwt;
+
+
 
 
 
