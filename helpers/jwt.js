@@ -1,32 +1,25 @@
-
-
-//expressjwt is used to check if user has a token or not inoder to have access to the token
-//to secure our server
-//https://jwt.io/
-//isRevoked is function used to specify if the user is admin or not
-
-
-const jwt = require('jsonwebtoken');
 const { expressjwt: expressJwt } = require("express-jwt");
 
 function authJwt() {
-    const secret = process.env.secret;
-    return expressJwt({
-        secret,
-        algorithms: ['HS256'],
-    }).unless({
-        path: [
-            // Public routes that don't require authentication
-            { url: /\/api\/v1\/products(.*)/, methods: ['GET', 'OPTIONS'] },
-            { url: /\/api\/v1\/users\/login/, methods: ['POST'] },
-            { url: /\/api\/v1\/users\/register/, methods: ['POST'] }
-        ]
-    });
+  const secret = process.env.secret;
+
+  return expressJwt({
+    secret,
+    algorithms: ['HS256'],
+    
+  }).unless({
+    path: [
+      // Allow all GET requests to /products and its subpaths
+      { url: /\/api\/v1\/products(\/.*)?$/, methods: ['GET', 'OPTIONS'] },
+
+      // Allow login and register
+      { url: '/api/v1/users/login', methods: ['POST'] },
+      { url: '/api/v1/users/register', methods: ['POST'] }
+    ]
+  });
 }
 
 module.exports = authJwt;
-
-
 
 
 
