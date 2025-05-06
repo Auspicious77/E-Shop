@@ -3,6 +3,8 @@ const router = express.Router();
 const { User } = require('../models/user');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const authJwt = require('../helpers/jwt');
+const checkAdmin = require('../helpers/check-admin');
 
 // Async wrapper for error handling
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -21,7 +23,7 @@ function validateFields(requiredFields, body) {
 
 
 // GET all users (without passwordHash)
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/',  authJwt(), checkAdmin, asyncHandler(async (req, res) => {
     const userList = await User.find().select('-passwordHash');
     res.status(200).json(userList);
 }));
@@ -42,7 +44,7 @@ router.get('/:id', asyncHandler(async (req, res, next) => {
 router.post('/register', async (req, res) => {
     const { name, email, password, phone, isAdmin, apartment, street, zip, city, country } = req.body;
 
-    const requiredFields = ['name', 'email', 'password', 'phone', 'apartment', 'street', 'zip', 'city', 'country'];
+    const requiredFields = ['name', 'email', 'password', 'phone', 'isAdmin', 'apartment', 'street', 'zip', 'city', 'country'];
     const missingFieldMessage = validateFields(requiredFields, req.body);
 
     if (missingFieldMessage) {
@@ -112,36 +114,34 @@ router.post('/register', async (req, res) => {
     }
 });
 
-
 // LOGIN user
 router.post('/login', asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
-    const secret = process.env.secret;
 
     if (!email || !password) {
-        const error = new Error('Email and Password are required');
-        error.name = 'ValidationError';
-        return next(error);
+        return res.status(400).json({
+            data: null,
+            message: 'Email and Password are required',
+        });
     }
 
+    const secret = process.env.secret;
     const user = await User.findOne({ email });
 
-    // Remove passwordHash before sending response
-    const userResponse = user.toObject();
-    delete userResponse.passwordHash;
-
-
     if (!user) {
-        const error = new Error('The user is not found');
-        error.status = 400;
-        return next(error);
+        return res.status(400).json({
+            data: null,
+            message: 'User doesnot exist',
+        });
     }
 
     const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
+
     if (!isPasswordValid) {
-        const error = new Error('Password is incorrect');
-        error.status = 400;
-        return next(error);
+        return res.status(400).json({
+            data: null,
+            message: 'Password is incorrect',
+        });
     }
 
     const token = jwt.sign(
@@ -153,11 +153,15 @@ router.post('/login', asyncHandler(async (req, res, next) => {
         { expiresIn: '1d' }
     );
 
+    const userResponse = user.toObject();
+    delete userResponse.passwordHash;
+
     res.status(200).json({
         data: userResponse,
         token,
     });
 }));
+
 
 // GET user count
 router.get('/get/count', asyncHandler(async (req, res) => {

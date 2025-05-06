@@ -43,40 +43,66 @@ router.put('/:id', async(req, res)=>{
 })
 
 router.post('/', async (req, res) => {
-    let category = new Category({
-        name: req.body.name,
-        icon: req.body.icon,
-        color: req.body.color
-    })
-    category = await category.save();
-    if (!category)
-        return res.status(404).send('The category cannot be created')
+    const { name, icon, color } = req.body;
 
-    res.send(category);
-})
+    // Validation: all fields required
+    if (!name || !icon || !color) {
+        return res.status(400).json({
+            data: null,
+            message: 'All fields are required',
+        });
+    }
+
+    // Check if category with same name exists
+    const checkExistingCategory = await Category.findOne({ name: name });
+    if (checkExistingCategory) {
+        return res.status(409).json({
+            data: null,
+            message: 'Category with this name already exists',
+        });
+    }
+
+    // Create and save new category
+    let category = new Category({ name, icon, color });
+
+    category = await category.save();
+    if (!category) {
+        return res.status(500).send('The category could not be created');
+    }
+
+    return res.status(200).json({
+        data: category,
+        message: "Category created successfully",
+    });
+});
+
 
 //delete category
 //api/v1/id
-router.delete('/:id', (req, res) => {
-    Category.findByIdAndRemove(req.params.id)
-        .then(category => {
-            if (category) {
-                return res.status(200).json({
-                    success: true, message: 'The category has been deleted'
-                })
-            }
-            else {
-                return res.status(404).json({
-                    success: false, message: "category not found"
-                })
-            }
-        }).catch(err => {
-            return res.status(400).json({
+// DELETE category
+router.delete('/:id', async (req, res) => {
+    try {
+        const category = await Category.findByIdAndDelete(req.params.id);
+
+        if (!category) {
+            return res.status(404).json({
                 success: false,
-                error: err
-            })
-        })
-})
+                message: "Category not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Category deleted successfully",
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message,
+        });
+    }
+});
+
 
 
 module.exports = router;
