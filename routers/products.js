@@ -3,7 +3,9 @@ const { Category } = require('../models/category');
 const router = express.Router();
 const { Product } = require('../models/product');
 const mongoose = require('mongoose')
-const multer = require('multer')
+const multer = require('multer');
+const authJwt = require('../helpers/jwt');
+const checkAdmin = require('../helpers/check-admin');
 
 //images upload
 
@@ -115,10 +117,15 @@ router.put('/:id', uploadOptions.single('image'), async (req, res) => {
 
 })
 
-router.post(`/`, uploadOptions.single('image'), async (req, res) => {
+router.post(`/`, authJwt(), checkAdmin, async (req, res) => {
     //validate if the category exist
     const category = await Category.findById(req.body.category);
-    if (!category) return res.status(400).send('Invalid category')
+    if (!category)
+        return res.status(401).json({
+            data: null,
+            message: 'Invalid category'
+        });
+        // return res.status(400).send('Invalid category')
 
     const file = req.file;
     if (!file) return res.status(400).send('No image in the request');
@@ -129,7 +136,7 @@ router.post(`/`, uploadOptions.single('image'), async (req, res) => {
         name: req.body.name,
         description: req.body.description,
         richDescription: req.body.richDescription,
-        image: `${basePath}${fileName}`,   //http://localhost:3000/public.uploads/cake.jpeg,
+        image: req.body.image,   //http://localhost:3000/public.uploads/cake.jpeg,
         brand: req.body.brand,
         price: req.body.price,
         category: req.body.category,

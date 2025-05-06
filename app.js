@@ -15,6 +15,7 @@ const productsRoute = require('./routers/products');
 const categoriesRoute = require('./routers/categories');
 const ordersRoute = require('./routers/orders');
 const usersRoute = require('./routers/users');
+const imageUploadRoutes = require('./routers/file-upload');
 const authJwt = require('./helpers/jwt');
 const errorHandler = require('./helpers/error-handler');
 
@@ -46,36 +47,24 @@ app.use(authJwt());
 // Other protected routes
 app.use(`${api}/categories`, categoriesRoute);
 app.use(`${api}/orders`, ordersRoute);
+app.use(`${api}/file`, imageUploadRoutes);
 
-
-
-
-
+// Log requests
 app.use((req, res, next) => {
-    res.status(404).json({
-      data: null,
-      message: 'Route not found',
-    });
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
+
+// ========== ERROR HANDLING ==========
+app.use(errorHandler); // Your custom error handler (must come before 404)
+
+// 404 handler (last)
+app.use((req, res) => {
+  res.status(404).json({
+    data: null,
+    message: 'Route not found',
   });
-  
-//   // Global Error Handler (optional, for other types of errors)
-//   app.use((err, req, res, next) => {
-//     console.error(err.stack);
-//     res.status(500).json({
-//       data: null,
-//       message: 'Not found!',
-//     });
-//   });
-
-  app.use((req, res, next) => {
-    console.log(`[${req.method}] ${req.originalUrl}`);
-    next();
-  });
-
-  
-
-  app.use(errorHandler);
-  
+});
 
 //Database
 mongoose.connect(process.env.CONNECTION_STRING, {
