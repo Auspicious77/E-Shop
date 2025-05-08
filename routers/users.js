@@ -10,6 +10,19 @@ const checkAdmin = require('../helpers/check-admin');
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 
+const sendVerificationEmail = require('../utils/send-mail');
+const generate5DigitToken = require('../utils/generateToken');
+
+// Inside try block, after saving the user
+// const token = Math.floor(10000 + Math.random() * 90000);
+// const { randomBytes } = require('node:crypto');
+// const token = randomBytes(20).toString('hex'); 
+
+const token = generate5DigitToken();
+
+const expires = Date.now() + 10 * 60 * 1000; // token expires in 10 minutes
+
+
 // Helper function to validate required fields
 function validateFields(requiredFields, body) {
     for (let field of requiredFields) {
@@ -23,7 +36,7 @@ function validateFields(requiredFields, body) {
 
 
 // GET all users (without passwordHash)
-router.get('/',  authJwt(), checkAdmin, asyncHandler(async (req, res) => {
+router.get('/', authJwt(), checkAdmin, asyncHandler(async (req, res) => {
     const userList = await User.find().select('-passwordHash');
     res.status(200).json(userList);
 }));
@@ -44,7 +57,7 @@ router.get('/:id', asyncHandler(async (req, res, next) => {
 router.post('/register', async (req, res) => {
     const { name, email, password, phone, isAdmin, apartment, street, zip, city, country } = req.body;
 
-    const requiredFields = ['name', 'email', 'password', 'phone', 'isAdmin', 'apartment', 'street', 'zip', 'city', 'country'];
+    const requiredFields = ['name', 'email', 'password', 'phone', 'street', 'zip', 'city', 'country'];
     const missingFieldMessage = validateFields(requiredFields, req.body);
 
     if (missingFieldMessage) {
@@ -91,7 +104,9 @@ router.post('/register', async (req, res) => {
             street,
             zip,
             city,
-            country
+            country,
+            verificationCode: token,
+            verificationCodeExpires: expires
         });
 
         const savedUser = await user.save();
@@ -99,6 +114,14 @@ router.post('/register', async (req, res) => {
         // Remove passwordHash before sending response
         const userResponse = savedUser.toObject();
         delete userResponse.passwordHash;
+
+        // Optionally: Save token to user record for later verification
+        savedUser.verificationToken = token;
+        await savedUser.save();
+
+        await sendVerificationEmail(email,token);
+
+
 
         return res.status(201).json({
             data: userResponse,
@@ -184,5 +207,44 @@ router.delete('/:id', asyncHandler(async (req, res, next) => {
         message: 'The user has been deleted',
     });
 }));
+
+
+router.post('/verify-email', async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({ message: 'Email and code are required' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.verificationCode !== code) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    if (user.verificationCodeExpires < Date.now()) {
+      return res.status(400).json({ message: 'Verification code expired' });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    
+    await user.save();
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;
+
 
 module.exports = router;
