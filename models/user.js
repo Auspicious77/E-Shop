@@ -42,6 +42,21 @@ const userSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    verificationCode: { 
+        type: String, 
+        default: ''
+    },
+     verificationCodeExpires: {
+         type: String, 
+         default: '' 
+    },
+        
+    isVerified: {
+            type: Boolean, 
+            default: ''
+    },
+
+    
 });
 
 //to change _id to id in order to use the back for any application
